@@ -1,28 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip\Events;
 
 use Illuminate\Notifications\Notification;
+use Throwable;
 
 class NotificationFailed
 {
-    private $notifiable;
-
-    private $notification;
-
-    private $exception;
-
-    /**
-     * NotificationFailed constructor.
-     *
-     * @param $notifiable
-     * @param Notification $notification
-     * @param \Exception $exception
-     */
-    public function __construct($notifiable, Notification $notification, \Exception $exception)
-    {
-        $this->notifiable = $notifiable;
-        $this->notification = $notification;
-        $this->exception = $exception;
-    }
+    public function __construct(
+        public readonly mixed $notifiable,
+        public readonly Notification $notification,
+        public readonly Throwable $exception,
+    ) {}
 }

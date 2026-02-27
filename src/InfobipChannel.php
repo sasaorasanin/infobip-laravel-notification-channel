@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
 use Illuminate\Contracts\Events\Dispatcher;
@@ -10,44 +12,30 @@ use NotificationChannels\Infobip\Exceptions\CouldNotSendNotification;
 
 class InfobipChannel
 {
-    /**
-     * @var Dispatcher
-     */
-    public $events;
-
-    /**
-     * @var Infobip
-     */
-    public $infobip;
-
-    /**
-     * InfobipChannel constructor.
-     *
-     * @param Infobip $infobip
-     * @param Dispatcher $events
-     */
-    public function __construct(Infobip $infobip, Dispatcher $events)
-    {
-        $this->events = $events;
-        $this->infobip = $infobip;
-    }
+    public function __construct(
+        protected readonly Infobip $infobip,
+        protected readonly Dispatcher $events,
+    ) {}
 
     /**
      * Send the given notification.
      *
-     * @param mixed $notifiable
-     * @param \Illuminate\Notifications\Notification $notification
-     *
-     * @throws \NotificationChannels\Infobip\Exceptions\CouldNotSendNotification
+     * @throws CouldNotSendNotification
      */
-    public function send($notifiable, Notification $notification)
+    public function send(mixed $notifiable, Notification $notification): void
     {
         $recipient = $this->getRecipient($notifiable);
-        $message = $notification->toInfoBip($notifiable);
+        
+        // Get the message using dynamic method call to avoid IDE warnings
+        $message = $notification->{'toInfoBip'}($notifiable);
+        
+        if (!$message instanceof InfobipMessage) {
+            throw CouldNotSendNotification::invalidMessageObject($message);
+        }
 
         try {
             $response = $this->infobip->sendMessage($message, $recipient);
-            $sentMessageInfo = $response->getMessages()[0];
+            $sentMessageInfo = $response->getMessages()[0] ?? null;
 
             $this->events->dispatch(new NotificationSent($notifiable, $notification, $sentMessageInfo));
         } catch (\Exception $exception) {
@@ -58,14 +46,12 @@ class InfobipChannel
     /**
      * Get message recipient.
      *
-     * @param $notifiable
-     * @return mixed
      * @throws CouldNotSendNotification
      */
-    public function getRecipient($notifiable)
+    protected function getRecipient(mixed $notifiable): string
     {
-        if ($notifiable->routeNotificationForInfoBip()) {
-            return $notifiable->routeNotificationForInfoBip();
+        if ($recipient = $notifiable->routeNotificationForInfoBip()) {
+            return $recipient;
         }
 
         throw CouldNotSendNotification::invalidReceiver();

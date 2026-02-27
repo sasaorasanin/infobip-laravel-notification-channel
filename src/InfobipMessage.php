@@ -1,28 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
 class InfobipMessage
 {
-    public $content;
+    public ?string $content = null;
+    public ?string $from = null;
 
-    public $from;
-
-    /**
-     * InfobipMessage constructor.
-     *
-     * @param string $content
-     */
-    public function __construct($content = '')
+    public function __construct(string $content = '')
     {
         $this->content = $content;
     }
 
-    /**
-     * @param $content
-     * @return $this
-     */
-    public function content($content)
+    public function content(string $content): static
     {
         $this->content = $content;
 
@@ -31,11 +23,8 @@ class InfobipMessage
 
     /**
      * Set the phone number this message is sent from.
-     *
-     * @param $from
-     * @return $this
      */
-    public function from($from)
+    public function from(string $from): static
     {
         $this->from = $from;
 
@@ -44,10 +33,8 @@ class InfobipMessage
 
     /**
      * Get the phone number this message is sent from.
-     *
-     * @return string
      */
-    public function getFrom()
+    public function getFrom(): ?string
     {
         return $this->from;
     }

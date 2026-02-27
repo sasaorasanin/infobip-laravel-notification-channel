@@ -1,33 +1,23 @@
 <?php
 
-namespace NotificationChannels\Infobip\Tests;
+declare(strict_types=1);
 
 use NotificationChannels\Infobip\InfobipMessage;
-use NotificationChannels\Infobip\Test\TestCase;
 
-class InfobipMessageTest extends TestCase
-{
-    /** @test */
-    public function it_can_accept_a_content_when_constructing_a_message(): void
-    {
-        $message = new InfobipMessage('hello');
+test('it can accept a content when constructing a message', function () {
+    $message = new InfobipMessage('hello');
 
-        $this->assertEquals('hello', $message->content);
-    }
+    expect($message->content)->toBe('hello');
+});
 
-    /** @test */
-    public function it_can_set_the_content(): void
-    {
-        $message = (new InfobipMessage())->content('hello');
+test('it can set the content', function () {
+    $message = (new InfobipMessage())->content('hello');
 
-        $this->assertEquals('hello', $message->content);
-    }
+    expect($message->content)->toBe('hello');
+});
 
-    /** @test */
-    public function it_can_set_the_from(): void
-    {
-        $message = (new InfobipMessage())->from('Infobip');
+test('it can set the from', function () {
+    $message = (new InfobipMessage())->from('Infobip');
 
-        $this->assertEquals('Infobip', $message->from);
-    }
-}
+    expect($message->from)->toBe('Infobip');
+});

@@ -1,24 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip\Test;
 
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use NotificationChannels\Infobip\InfobipServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-class TestCase extends Orchestra
+abstract class TestCase extends Orchestra
 {
-    use MockeryPHPUnitIntegration;
-
-    /**
-     * @param \Illuminate\Foundation\Application $app
-     *
-     * @return array
-     */
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [
             InfobipServiceProvider::class,
         ];
+    }
+
+    protected function getEnvironmentSetUp($app): void
+    {
+        $app['config']->set('services.infobip', [
+            'api_key' => 'test-api-key',
+            'base_url' => 'https://api.infobip.com',
+            'from' => 'InfoNotify',
+            'notify_url' => 'https://example.com/notify',
+        ]);
     }
 }

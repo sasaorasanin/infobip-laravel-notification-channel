@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
 use Illuminate\Contracts\Events\Dispatcher;
@@ -11,10 +13,10 @@ class InfobipServiceProvider extends ServiceProvider
     /**
      * Register the application services.
      */
-    public function register()
+    public function register(): void
     {
         $this->app->bind(InfobipConfig::class, function () {
-            return new InfobipConfig($this->app['config']['services.infobip']);
+            return new InfobipConfig($this->app['config']['services.infobip'] ?? []);
         });
 
         Notification::extend('infobip', function ($app) {

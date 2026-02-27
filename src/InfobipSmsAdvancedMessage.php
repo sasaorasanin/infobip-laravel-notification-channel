@@ -1,23 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
 class InfobipSmsAdvancedMessage extends InfobipMessage
 {
-    public $notifyUrl;
+    public ?string $notifyUrl = null;
 
-    /**
-     * @param $notifyUrl
-     */
-    public function notifyUrl($notifyUrl)
+    public function notifyUrl(?string $notifyUrl): static
     {
         $this->notifyUrl = $notifyUrl;
+
+        return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getNotifyUrl()
+    public function getNotifyUrl(): ?string
     {
         return $this->notifyUrl;
     }

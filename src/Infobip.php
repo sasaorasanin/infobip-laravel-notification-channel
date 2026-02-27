@@ -1,141 +1,127 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
-use infobip\api\client\SendMultipleTextualSmsAdvanced;
-use infobip\api\client\SendSingleTextualSms;
-use infobip\api\configuration\BasicAuthConfiguration;
-use infobip\api\model\Destination;
-use infobip\api\model\sms\mt\send\Message;
-use infobip\api\model\sms\mt\send\textual\SMSAdvancedTextualRequest;
-use infobip\api\model\sms\mt\send\textual\SMSTextualRequest;
+use Infobip\Api\SmsApi;
+use Infobip\Configuration;
+use Infobip\Model\SmsDestination;
+use Infobip\Model\SmsMessage;
+use Infobip\Model\SmsMessageDeliveryReporting;
+use Infobip\Model\SmsRequest;
+use Infobip\Model\SmsTextContent;
+use Infobip\Model\SmsWebhooks;
 use NotificationChannels\Infobip\Exceptions\CouldNotSendNotification;
 
 class Infobip
 {
-    /**
-     * @var InfobipConfig
-     */
-    public $config;
+    public function __construct(
+        public readonly InfobipConfig $config,
+    ) {}
 
     /**
-     * @var InfobipMessage
-     */
-    public $message;
-
-    /**
-     * Infobip constructor.
+     * Send SMS message to recipient.
      *
-     * @param InfobipMessage $message
-     * @param InfobipConfig $config
-     */
-    public function __construct(InfobipMessage $message, InfobipConfig $config)
-    {
-        $this->config = $config;
-        $this->message = $message;
-    }
-
-    /**
-     * Send sms message to recipient.
-     *
-     * @param InfobipMessage $message
-     * @param $recipient
-     * @return \infobip\api\model\sms\mt\send\SMSResponse
      * @throws CouldNotSendNotification
      */
-    public function sendMessage(InfobipMessage $message, $recipient)
+    public function sendMessage(InfobipMessage $message, string $recipient): mixed
     {
-        if ($message instanceof InfobipMessage) {
-            $message->from($this->config->getFrom());
-
-            return $this->sendSms($message, $recipient);
-        }
+        $message->from($this->config->getFrom());
 
         if ($message instanceof InfobipSmsAdvancedMessage) {
-            $message->from($this->config->getFrom());
             $message->notifyUrl($this->config->getNotifyUrl());
-
             return $this->sendSmsAdvanced($message, $recipient);
         }
 
-        throw CouldNotSendNotification::invalidMessageObject($message);
+        return $this->sendSms($message, $recipient);
     }
 
     /**
-     * Send sms message to recipient using Infobip SMSTextualRequest.
-     *
-     * @param InfobipMessage $message
-     * @param $recipient
-     * @return \infobip\api\model\sms\mt\send\SMSResponse
+     * Send SMS message to recipient.
      */
-    public function sendSms(InfobipMessage $message, $recipient)
+    protected function sendSms(InfobipMessage $message, string $recipient): mixed
     {
-        $client = new SendSingleTextualSms(new BasicAuthConfiguration($this->config->config['username'], $this->config->config['password']));
+        $client = $this->createSmsApi();
 
-        $request = new SMSTextualRequest();
-        $request->setFrom($this->getFrom($message));
-        $request->setTo($recipient);
-        $request->setText($message->content);
+        $destination = new SmsDestination(to: $recipient);
+        $content = new SmsTextContent(text: $message->content);
 
-        return $client->execute($request);
+        $smsMessage = new SmsMessage(
+            destinations: [$destination],
+            content: $content,
+            sender: $this->getFrom($message)
+        );
+
+        $request = new SmsRequest(messages: [$smsMessage]);
+
+        return $client->sendSmsMessages($request);
     }
 
     /**
-     * Send sms advanced to recipient using SMSAdvancedTextualRequest.
-     *
-     * @param InfobipSmsAdvancedMessage $message
-     * @param $recipient
-     * @return \infobip\api\model\sms\mt\send\SMSResponse
+     * Send advanced SMS to recipient.
      */
-    public function sendSmsAdvanced(InfobipSmsAdvancedMessage $message, $recipient)
+    protected function sendSmsAdvanced(InfobipSmsAdvancedMessage $message, string $recipient): mixed
     {
-        $client = new SendMultipleTextualSmsAdvanced(new BasicAuthConfiguration($this->config->config['username'], $this->config->config['password']));
+        $client = $this->createSmsApi();
 
-        $destination = new Destination();
+        $destination = new SmsDestination(to: $recipient);
+        $content = new SmsTextContent(text: $message->content);
 
-        $destination->setTo($recipient);
+        $webhooks = null;
+        if ($notifyUrl = $this->getNotifyUrl($message)) {
+            $delivery = new SmsMessageDeliveryReporting(url: $notifyUrl);
+            $webhooks = new SmsWebhooks(delivery: $delivery);
+        }
 
-        $requestMessage = new Message();
-        $requestMessage->setFrom($this->getFrom($message));
-        $requestMessage->setDestinations([$destination]);
-        $requestMessage->setText($message->content);
-        $requestMessage->setNotifyUrl($this->getNotifyUrl($message));
+        $smsMessage = new SmsMessage(
+            destinations: [$destination],
+            content: $content,
+            sender: $this->getFrom($message),
+            webhooks: $webhooks
+        );
 
-        $request = new SMSAdvancedTextualRequest();
-        $request->setMessages([$requestMessage]);
+        $request = new SmsRequest(messages: [$smsMessage]);
 
-        return $client->execute($request);
+        return $client->sendSmsMessages($request);
+    }
+
+    /**
+     * Create SMS API client.
+     */
+    protected function createSmsApi(): SmsApi
+    {
+        $configuration = new Configuration(
+            host: $this->config->getBaseUrl(),
+            apiKey: $this->config->getApiKey()
+        );
+
+        return new SmsApi(config: $configuration);
     }
 
     /**
      * Get message from phone number from message or config.
      *
-     * @param InfobipMessage $message
-     * @return mixed
      * @throws CouldNotSendNotification
      */
-    public function getFrom(InfobipMessage $message)
+    protected function getFrom(InfobipMessage $message): string
     {
-        if (! $from = $message->from ?: $this->config->config['from']) {
+        $from = $message->from ?: $this->config->getFrom();
+
+        if (! $from) {
             throw CouldNotSendNotification::missingFrom();
         }
 
-        return $message->from ?: $this->config->config['from'];
+        return $from;
     }
 
     /**
-     * Get sms notify url.
+     * Get SMS notify URL.
      *
-     * @param InfobipSmsAdvancedMessage $message
-     * @return mixed
      * @throws CouldNotSendNotification
      */
-    public function getNotifyUrl(InfobipSmsAdvancedMessage $message)
+    protected function getNotifyUrl(InfobipSmsAdvancedMessage $message): ?string
     {
-        if (! $notifyUrl = $message->notifyUrl ?: $this->config->config['notify_url']) {
-            throw CouldNotSendNotification::missingNotifyUrl();
-        }
-
-        return $message->notify_url ?: $this->config->config['notify_url'];
+        return $message->notifyUrl ?: $this->config->getNotifyUrl();
     }
 }

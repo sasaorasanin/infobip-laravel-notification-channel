@@ -1,37 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip;
 
 class InfobipConfig
 {
-    /**
-     * @var InfobipConfig
-     */
-    public $config;
+    public function __construct(
+        protected readonly array $config
+    ) {}
 
-    /**
-     * InfobipConfig constructor.
-     *
-     * @param array $config
-     */
-    public function __construct(array $config)
+    public function getApiKey(): string
     {
-        $this->config = $config;
+        return $this->config['api_key'] ?? '';
     }
 
-    /**
-     * @return mixed
-     */
-    public function getFrom()
+    public function getBaseUrl(): string
     {
-        return $this->config['from'];
+        return $this->config['base_url'] ?? 'https://api.infobip.com';
     }
 
-    /**
-     * @return mixed
-     */
-    public function getNotifyUrl()
+    public function getFrom(): ?string
     {
-        return $this->config['notify_url'];
+        return $this->config['from'] ?? null;
+    }
+
+    public function getNotifyUrl(): ?string
+    {
+        return $this->config['notify_url'] ?? null;
     }
 }

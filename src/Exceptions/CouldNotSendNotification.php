@@ -1,53 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NotificationChannels\Infobip\Exceptions;
 
+use Exception;
 use NotificationChannels\Infobip\InfobipMessage;
 use NotificationChannels\Infobip\InfobipSmsAdvancedMessage;
 
-class CouldNotSendNotification extends \Exception
+class CouldNotSendNotification extends Exception
 {
-    /**
-     * @return static
-     */
-    public static function invalidCredentials()
+    public static function invalidCredentials(): self
     {
-        return new static('Invalid credentials');
+        return new self('Invalid credentials');
     }
 
-    /**
-     * @return static
-     */
-    public static function invalidReceiver()
+    public static function invalidReceiver(): self
     {
-        return new static('The notifiable did not have a phone number. Add routeNotificationForInfoBip to your notifiable');
+        return new self('The notifiable did not have a phone number. Add routeNotificationForInfoBip to your notifiable');
     }
 
-    /**
-     * @return static
-     */
-    public static function missingFrom()
+    public static function missingFrom(): self
     {
-        return new static('Notification was not sent. Missing `from` number.');
+        return new self('Notification was not sent. Missing `from` number.');
     }
 
-    /**
-     * @return static
-     */
-    public static function missingNotifyUrl()
+    public static function missingNotifyUrl(): self
     {
-        return new static('Notification was not sent. Missing `notify_url`');
+        return new self('Notification was not sent. Missing `notify_url`');
     }
 
-    /**
-     * @param $message
-     * @return static
-     */
-    public static function invalidMessageObject($message)
+    public static function invalidMessageObject(mixed $message): self
     {
         $className = get_class($message) ?: 'Unknown';
 
-        return new static(
+        return new self(
             'Notification was not sent. Message object class '.$className.
             ' is invalid. It should be either '.InfobipMessage::class.
             ' or '.InfobipSmsAdvancedMessage::class
